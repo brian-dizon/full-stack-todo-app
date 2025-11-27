@@ -1,12 +1,4 @@
-const express = require('express');
-const app = express();
-const PORT = 3000;
-
-// app.use(express.json());
-app.use(express.urlencoded({extended: false}))
-
-app.get('/', (req, res) => {
-  res.send(`
+let outputHTML = `
     <!DOCTYPE html>
     <html>
     <head>
@@ -56,14 +48,36 @@ app.get('/', (req, res) => {
     
     </body>
     </html>
-    `);
+    `;
+
+const express = require('express');
+const { MongoClient } = require('mongodb');
+
+const app = express();
+let db;
+
+const connectionString = 'mongodb+srv://bvd_reading:33JFxJ7WJPOEA3dE@cluster0.gbqj3t6.mongodb.net/?appName=Cluster0'
+
+async function go() {
+    let client = new MongoClient(connectionString);
+    await client.connect();
+    db = client.db('TodoApp');
+    app.listen(3000, () => {
+        console.log(`Server is running on port 3000`);
+    });
+}
+
+go();
+
+// app.use(express.json());
+app.use(express.urlencoded({ extended: false }))
+
+app.get('/', (req, res) => {
+    res.send(outputHTML);
 });
 
-app.post('/create-item', (req, res) => {
-  console.log(req.body.item)
-  res.send("thanks for submitting the form.")
+app.post('/create-item', async (req, res) => {
+    await db.collection('items').insertOne({ text: req.body.item })
+    res.send("thanks for submitting the form.")
 })
 
-app.listen(PORT, () => {
-  console.log(`Server is running on port ${PORT}`);
-});
