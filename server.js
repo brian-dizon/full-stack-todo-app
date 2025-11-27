@@ -1,4 +1,28 @@
-let outputHTML = `
+const { log } = require('console');
+const express = require('express');
+const { MongoClient } = require('mongodb');
+
+const app = express();
+let db;
+
+const connectionString = 'mongodb+srv://bvd_reading:33JFxJ7WJPOEA3dE@cluster0.gbqj3t6.mongodb.net/?appName=Cluster0'
+
+async function go() {
+    let client = new MongoClient(connectionString);
+    await client.connect();
+    db = client.db('TodoApp');
+    app.listen(3000, () => {
+        console.log(`Server is running on port 3000`);
+    });
+}
+
+go();
+
+app.use(express.urlencoded({ extended: false }))
+
+app.get('/', async (req, res) => {
+    let items = await db.collection('items').find().toArray();
+    res.send(`
     <!DOCTYPE html>
     <html>
     <head>
@@ -21,63 +45,26 @@ let outputHTML = `
         </div>
         
         <ul class="list-group pb-5">
-        <li class="list-group-item list-group-item-action d-flex align-items-center justify-content-between">
-            <span class="item-text">Fake example item #1</span>
-            <div>
-            <button class="edit-me btn btn-secondary btn-sm mr-1">Edit</button>
-            <button class="delete-me btn btn-danger btn-sm">Delete</button>
-            </div>
-        </li>
-        <li class="list-group-item list-group-item-action d-flex align-items-center justify-content-between">
-            <span class="item-text">Fake example item #2</span>
-            <div>
-            <button class="edit-me btn btn-secondary btn-sm mr-1">Edit</button>
-            <button class="delete-me btn btn-danger btn-sm">Delete</button>
-            </div>
-        </li>
-        <li class="list-group-item list-group-item-action d-flex align-items-center justify-content-between">
-            <span class="item-text">Fake example item #3</span>
-            <div>
-            <button class="edit-me btn btn-secondary btn-sm mr-1">Edit</button>
-            <button class="delete-me btn btn-danger btn-sm">Delete</button>
-            </div>
-        </li>
+        ${items.map((item) => { 
+            return `<li class="list-group-item list-group-item-action d-flex align-items-center justify-content-between">
+                <span class="item-text">${item.text}</span>
+                <div>
+                    <button class="edit-me btn btn-secondary btn-sm mr-1">Edit</button>
+                    <button class="delete-me btn btn-danger btn-sm">Delete</button>
+                </div>
+            </li>`
+        }).join('')} 
         </ul>
         
     </div>
     
     </body>
     </html>
-    `;
-
-const express = require('express');
-const { MongoClient } = require('mongodb');
-
-const app = express();
-let db;
-
-const connectionString = 'mongodb+srv://bvd_reading:33JFxJ7WJPOEA3dE@cluster0.gbqj3t6.mongodb.net/?appName=Cluster0'
-
-async function go() {
-    let client = new MongoClient(connectionString);
-    await client.connect();
-    db = client.db('TodoApp');
-    app.listen(3000, () => {
-        console.log(`Server is running on port 3000`);
-    });
-}
-
-go();
-
-// app.use(express.json());
-app.use(express.urlencoded({ extended: false }))
-
-app.get('/', (req, res) => {
-    res.send(outputHTML);
+    `);
 });
 
 app.post('/create-item', async (req, res) => {
     await db.collection('items').insertOne({ text: req.body.item })
-    res.send("thanks for submitting the form.")
+    res.redirect('/');
 })
 
