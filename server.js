@@ -1,8 +1,10 @@
 const express = require('express');
-const { MongoClient } = require('mongodb');
+const { MongoClient, ObjectId } = require('mongodb');
 
 const app = express();
 let db;
+
+app.use(express.static('public'));
 
 const connectionString = 'mongodb+srv://bvd_reading:33JFxJ7WJPOEA3dE@cluster0.gbqj3t6.mongodb.net/?appName=Cluster0'
 
@@ -17,7 +19,8 @@ async function dbConnect() {
 
 dbConnect();
 
-app.use(express.urlencoded({ extended: false }))
+app.use(express.json());
+app.use(express.urlencoded({ extended: false }));
 
 app.get('/', async (req, res) => {
     let items = await db.collection('items').find().toArray();
@@ -44,19 +47,21 @@ app.get('/', async (req, res) => {
         </div>
         
         <ul class="list-group pb-5">
-        ${items.map((item) => { 
-            return `<li class="list-group-item list-group-item-action d-flex align-items-center justify-content-between">
+        ${items.map((item) => {
+        return `<li class="list-group-item list-group-item-action d-flex align-items-center justify-content-between">
                 <span class="item-text">${item.text}</span>
                 <div>
-                    <button class="edit-me btn btn-secondary btn-sm mr-1">Edit</button>
+                    <button data-id="${item._id}" class="edit-me btn btn-secondary btn-sm mr-1">Edit</button>
                     <button class="delete-me btn btn-danger btn-sm">Delete</button>
                 </div>
             </li>`
-        }).join('')} 
+    }).join('')} 
         </ul>
         
     </div>
     
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script src="/browser.js"></script>
     </body>
     </html>
     `);
@@ -65,4 +70,9 @@ app.get('/', async (req, res) => {
 app.post('/create-item', async (req, res) => {
     await db.collection('items').insertOne({ text: req.body.item })
     res.redirect('/');
+})
+
+app.post('/update-item', async (req, res) => {
+    await db.collection('items').findOneAndUpdate({ _id: new ObjectId(req.body.id) }, { $set: { text: req.body.text } })
+    res.send("Success");
 })
