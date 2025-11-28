@@ -1,4 +1,3 @@
-const { log } = require('console');
 const express = require('express');
 const { MongoClient } = require('mongodb');
 
@@ -7,7 +6,7 @@ let db;
 
 const connectionString = 'mongodb+srv://bvd_reading:33JFxJ7WJPOEA3dE@cluster0.gbqj3t6.mongodb.net/?appName=Cluster0'
 
-async function go() {
+async function dbConnect() {
     let client = new MongoClient(connectionString);
     await client.connect();
     db = client.db('TodoApp');
@@ -16,7 +15,7 @@ async function go() {
     });
 }
 
-go();
+dbConnect();
 
 app.use(express.urlencoded({ extended: false }))
 
@@ -67,4 +66,3 @@ app.post('/create-item', async (req, res) => {
     await db.collection('items').insertOne({ text: req.body.item })
     res.redirect('/');
 })
-
