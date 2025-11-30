@@ -5,6 +5,8 @@ const app = express();
 let db;
 
 app.use(express.static('public'));
+app.use(express.json());
+app.use(express.urlencoded({ extended: false }));
 
 const connectionString = 'mongodb+srv://bvd_reading:33JFxJ7WJPOEA3dE@cluster0.gbqj3t6.mongodb.net/?appName=Cluster0'
 
@@ -19,8 +21,6 @@ async function dbConnect() {
 
 dbConnect();
 
-app.use(express.json());
-app.use(express.urlencoded({ extended: false }));
 
 app.get('/', async (req, res) => {
     let items = await db.collection('items').find().toArray();
