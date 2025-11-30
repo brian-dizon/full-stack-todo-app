@@ -1,14 +1,43 @@
 document.addEventListener('click', e => {
+    function itemTemplate(item){
+        return `<li class="list-group-item list-group-item-action d-flex align-items-center justify-content-between">
+                    <span class="item-text">${item.text}</span>
+                    <div>
+                        <button data-id="${item._id}" class="edit-me btn btn-secondary btn-sm mr-1">Edit</button>
+                        <button data-id="${item._id}" class="delete-me btn btn-danger btn-sm">Delete</button>
+                    </div>
+                </li>`
+    }
+
+    // CREATE Feature
+    const createForm = document.getElementById('create-form');
+    const createField = document.getElementById('create-field');
+    const itemList = document.getElementById('item-list');
+
+    createForm.addEventListener('submit', function(e){
+        e.preventDefault();
+        axios.post('/create-item', {
+            text: createField.value
+        }).then(function(response){
+            // create the HTML for the new item
+            itemList.insertAdjacentHTML('afterbegin', itemTemplate(response.data))
+            createField.value = '';
+            createField.focus()
+        }).catch(function(){
+            console.log('Something went wrong.')
+        })
+    })
+
     // DELETE Feature
     if (e.target.classList.contains('delete-me')) {
-        if (confirm("Delete this item permanently?")) {
+        // if (confirm("Delete this item permanently?")) {
             axios.post('/delete-item', { id: e.target.getAttribute("data-id") }).then(function () {
                 // update the text on the front end real-time
                 e.target.parentElement.parentElement.remove();
             }).catch(function () {
                 console.log("Something went wrong.")
             })
-        }
+        // } 
     }
 
     // UPDATE Feature
