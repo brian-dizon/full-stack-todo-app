@@ -9,10 +9,20 @@ document.addEventListener('click', e => {
                 </li>`
     }
 
-    // CREATE Feature
+    // HANDLERS
     const createForm = document.getElementById('create-form');
     const createField = document.getElementById('create-field');
     const itemList = document.getElementById('item-list');
+
+    // INITIAL Page Load Render
+    let ourHTML = items.map(item=>{
+        return itemTemplate(item)
+    }).join('')
+    
+    itemList.insertAdjacentHTML('beforeend', ourHTML)
+
+
+    // CREATE Feature
 
     createForm.addEventListener('submit', function(e){
         e.preventDefault();
