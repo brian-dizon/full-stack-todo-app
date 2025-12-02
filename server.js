@@ -1,5 +1,6 @@
 const express = require('express');
 const { MongoClient, ObjectId } = require('mongodb');
+const sanitizeHTML = require('sanitize-html')
 
 const app = express();
 let db;
@@ -21,6 +22,18 @@ async function dbConnect() {
 
 dbConnect();
 
+function passwordProtected(req, res, next) {
+    res.set('WWW-Authenticate', 'Basic realm="Simple Todo App"')
+    console.log(req.headers.authorization);
+    if (req.headers.authorization == "Basic YnZkOnBhc3M=") {
+        next()
+    } else {
+        res.status(401).send('Authentication required.')
+    }
+}
+
+// Requires the function "passwordProtected" to run on all routes
+app.use(passwordProtected) 
 
 app.get('/', async (req, res) => {
     let items = await db.collection('items').find().toArray();
@@ -28,10 +41,10 @@ app.get('/', async (req, res) => {
     <!DOCTYPE html>
     <html>
     <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Simple To-Do App</title>
-    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.2.1/css/bootstrap.min.css" integrity="sha384-GJzZqFGwb1QTTN6wy59ffF1BuGJpLSa9DkKMp0DgiMDm4iYMj70gZWKYbI706tWS" crossorigin="anonymous">
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Simple To-Do App</title>
+        <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.2.1/css/bootstrap.min.css" integrity="sha384-GJzZqFGwb1QTTN6wy59ffF1BuGJpLSa9DkKMp0DgiMDm4iYMj70gZWKYbI706tWS" crossorigin="anonymous">
     </head>
     <body>
         <div class="container">
@@ -63,12 +76,21 @@ app.post('/create-item', async (req, res) => {
     // await db.collection('items').insertOne({ text: req.body.item })
     // res.redirect('/');
 
-    let info = await db.collection('items').insertOne({ text: req.body.text })
-    res.json({_id: info.insertedId, text: req.body.text});
+    let safeText = sanitizeHTML(req.body.text, {
+        allowedTags: [],
+        allowedAttributes: {}
+    })
+
+    let info = await db.collection('items').insertOne({ text: safeText })
+    res.json({ _id: info.insertedId, text: safeText });
 })
 
 app.post('/update-item', async (req, res) => {
-    await db.collection('items').findOneAndUpdate({ _id: new ObjectId(req.body.id) }, { $set: { text: req.body.text } })
+    let safeText = sanitizeHTML(req.body.text, {
+        allowedTags: [],
+        allowedAttributes: {}
+    })
+    await db.collection('items').findOneAndUpdate({ _id: new ObjectId(req.body.id) }, { $set: { text: safeText } })
     res.send("Success");
 })
 
