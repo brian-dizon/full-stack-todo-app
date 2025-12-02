@@ -1,100 +1,92 @@
-const express = require('express');
-const { MongoClient, ObjectId } = require('mongodb');
-const sanitizeHTML = require('sanitize-html')
+let express = require("express")
+let { MongoClient, ObjectId } = require("mongodb")
+let sanitizeHTML = require("sanitize-html")
 
-const app = express();
-let db;
+let app = express()
+let db
 
-app.use(express.static('public'));
-app.use(express.json());
-app.use(express.urlencoded({ extended: false }));
-
-const connectionString = 'mongodb+srv://bvd_reading:33JFxJ7WJPOEA3dE@cluster0.gbqj3t6.mongodb.net/?appName=Cluster0'
-
-async function dbConnect() {
-    let client = new MongoClient(connectionString);
-    await client.connect();
-    db = client.db('TodoApp');
-    app.listen(3000, () => {
-        console.log(`Server is running on port 3000`);
-    });
+let port = process.env.PORT
+if (port == null || port == "") {
+  port = 3000
 }
 
-dbConnect();
+app.use(express.static("public"))
+
+async function go() {
+  let client = new MongoClient("mongodb+srv://bvd_reading:33JFxJ7WJPOEA3dE@cluster0.gbqj3t6.mongodb.net/?appName=Cluster0")
+  await client.connect()
+  db = client.db()
+  app.listen(port)
+}
+
+go()
+
+app.use(express.json())
+app.use(express.urlencoded({ extended: false }))
 
 function passwordProtected(req, res, next) {
-    res.set('WWW-Authenticate', 'Basic realm="Simple Todo App"')
-    console.log(req.headers.authorization);
-    if (req.headers.authorization == "Basic YnZkOnBhc3M=") {
-        next()
-    } else {
-        res.status(401).send('Authentication required.')
-    }
+  res.set("WWW-Authenticate", 'Basic realm="Simple Todo App"')
+  console.log(req.headers.authorization)
+  if (req.headers.authorization == "Basic bGVhcm46amF2YXNjcmlwdA==") {
+    next()
+  } else {
+    res.status(401).send("Authentication required")
+  }
 }
 
-// Requires the function "passwordProtected" to run on all routes
-app.use(passwordProtected) 
+app.use(passwordProtected)
 
-app.get('/', async (req, res) => {
-    let items = await db.collection('items').find().toArray();
-    res.send(`
-    <!DOCTYPE html>
-    <html>
-    <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Simple To-Do App</title>
-        <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.2.1/css/bootstrap.min.css" integrity="sha384-GJzZqFGwb1QTTN6wy59ffF1BuGJpLSa9DkKMp0DgiMDm4iYMj70gZWKYbI706tWS" crossorigin="anonymous">
-    </head>
-    <body>
-        <div class="container">
-            <h1 class="display-4 text-center py-1">To-Do App</h1>
-            
-            <div class="jumbotron p-3 shadow-sm">
-            <form id="create-form" action="/create-item" method="POST">
-                <div class="d-flex align-items-center">
-                <input id="create-field" autofocus name="item" autocomplete="off" class="form-control mr-3" type="text" style="flex: 1;">
-                <button class="btn btn-primary">Add New Item</button>
-                </div>
-            </form>
-            </div>
-            
-            <ul id="item-list" class="list-group pb-5"></ul>     
-        </div>
-    
-        <script>
-            let items = ${JSON.stringify(items)}
-        </script>
-        <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
-        <script src="/browser.js"></script>
-    </body>
-    </html>
-    `);
-});
+app.get("/", async function (req, res) {
+  const items = await db.collection("items").find().toArray()
+  res.send(`<!DOCTYPE html>
+  <html>
+  <head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Simple To-Do App</title>
+  <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.2.1/css/bootstrap.min.css" integrity="sha384-GJzZqFGwb1QTTN6wy59ffF1BuGJpLSa9DkKMp0DgiMDm4iYMj70gZWKYbI706tWS" crossorigin="anonymous">
+  </head>
+  <body>
+  <div class="container">
+  <h1 class="display-4 text-center py-1">To-Do App!</h1>
+  
+  <div class="jumbotron p-3 shadow-sm">
+  <form id="create-form" action="/create-item" method="POST">
+  <div class="d-flex align-items-center">
+  <input id="create-field" name="item" autofocus autocomplete="off" class="form-control mr-3" type="text" style="flex: 1;">
+  <button class="btn btn-primary">Add New Item</button>
+  </div>
+  </form>
+  </div>
+  
+  <ul id="item-list" class="list-group pb-5">
+  </ul>
+  
+  </div>
+  
+  <script>
+  let items = ${JSON.stringify(items)}
+  </script>
 
-app.post('/create-item', async (req, res) => {
-    // await db.collection('items').insertOne({ text: req.body.item })
-    // res.redirect('/');
-
-    let safeText = sanitizeHTML(req.body.text, {
-        allowedTags: [],
-        allowedAttributes: {}
-    })
-
-    let info = await db.collection('items').insertOne({ text: safeText })
-    res.json({ _id: info.insertedId, text: safeText });
+  <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+  <script src="/browser.js"></script>
+  </body>
+  </html>`)
 })
 
-app.post('/update-item', async (req, res) => {
-    let safeText = sanitizeHTML(req.body.text, {
-        allowedTags: [],
-        allowedAttributes: {}
-    })
-    await db.collection('items').findOneAndUpdate({ _id: new ObjectId(req.body.id) }, { $set: { text: safeText } })
-    res.send("Success");
+app.post("/create-item", async function (req, res) {
+  let safeText = sanitizeHTML(req.body.text, { allowedTags: [], allowedAttributes: {} })
+  const info = await db.collection("items").insertOne({ text: safeText })
+  res.json({ _id: info.insertedId, text: safeText })
 })
 
-app.post('/delete-item', async (req, res) => {
-    await db.collection('items').deleteOne({ _id: new ObjectId(req.body.id) })
-    res.send("Success");
+app.post("/update-item", async function (req, res) {
+  let safeText = sanitizeHTML(req.body.text, { allowedTags: [], allowedAttributes: {} })
+  await db.collection("items").findOneAndUpdate({ _id: new ObjectId(req.body.id) }, { $set: { text: safeText } })
+  res.send("Success")
+})
+
+app.post("/delete-item", async function (req, res) {
+  await db.collection("items").deleteOne({ _id: new ObjectId(req.body.id) })
+  res.send("Success")
 })
